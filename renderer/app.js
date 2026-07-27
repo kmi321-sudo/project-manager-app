@@ -1,34 +1,34 @@
 /* =====================================================================
-   灏堟绠＄悊 APP 鈥? 娓叉煋灞ら倧杓?
+   專案管理 APP — 渲染層邏輯（繁體中文）
    ===================================================================== */
 (() => {
   'use strict';
 
-  /* ---------- 甯告暩 ---------- */
+  /* ---------- 常數 ---------- */
   const STATUSES = [
-    { key: 'todo', label: '寰呰睛' },
-    { key: 'doing', label: '閫茶涓?' },
-    { key: 'done', label: '宸插畬鎴?' }
+    { key: 'todo', label: '待辦' },
+    { key: 'doing', label: '進行中' },
+    { key: 'done', label: '已完成' }
   ];
   const PRIORITIES = [
-    { key: 'high', label: '楂?' },
-    { key: 'medium', label: '涓?' },
-    { key: 'low', label: '浣?' }
+    { key: 'high', label: '高' },
+    { key: 'medium', label: '中' },
+    { key: 'low', label: '低' }
   ];
   const THEMES = [
-    { key: 'dark', label: '鏆楄壊', swatch: '#1f2430' },
-    { key: 'light', label: '浜壊', swatch: '#ffffff' },
-    { key: 'forest', label: '妫灄', swatch: '#1d2e25' }
+    { key: 'dark', label: '暗色', swatch: '#1f2430' },
+    { key: 'light', label: '亮色', swatch: '#ffffff' },
+    { key: 'forest', label: '森林', swatch: '#1d2e25' }
   ];
-  const VIEW_TITLES = { board: '鐪嬫澘', list: '鍒楄〃', calendar: '鏃ユ泦', stats: '绲辫▓', settings: '瑷畾' };
+  const VIEW_TITLES = { board: '看板', list: '列表', calendar: '日曆', stats: '統計', settings: '設定' };
 
-  /* ---------- 鍏ㄥ煙鐙�鎱? ---------- */
+  /* ---------- 全域狀態 ---------- */
   let state = null;
   let currentView = 'board';
-  let calYear, calMonth; // 鏃ユ泦鐣跺墠骞存湀
-  const notified = new Set(); // 宸叉彁閱掗亷鐨勪换鍕? id
+  let calYear, calMonth;
+  const notified = new Set();
 
-  /* ---------- 宸ュ叿 ---------- */
+  /* ---------- 工具 ---------- */
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
   const uid = () => Math.random().toString(36).slice(2, 10);
@@ -39,7 +39,7 @@
   function fmtDue(due) {
     if (!due) return '';
     const t = new Date(due + 'T00:00:00');
-    return `${t.getMonth() + 1}/${t.getDate()}`;
+    return (t.getMonth() + 1) + '/' + t.getDate();
   }
   function isOverdue(t) { return t.due && t.status !== 'done' && t.due < todayStr(); }
   function isSoon(t) {
@@ -58,11 +58,11 @@
   }
   function subMetaHTML(t) {
     const sp = subProgress(t);
-    return sp.total ? `<span class="due" title="子清單進度">? ${sp.done}/${sp.total}</span>` : '';
+    return sp.total ? '<span class="due" title="子清單進度">? ' + sp.done + '/' + sp.total + '</span>' : '';
   }
   function attMetaHTML(t) {
     const n = (t.attachments || []).length;
-    return n ? `<span class="due" title="附件數量">? ${n}</span>` : '';
+    return n ? '<span class="due" title="附件數量">? ' + n + '</span>' : '';
   }
 
   async function saveState() { await window.api.saveData(state); }
@@ -75,7 +75,7 @@
     el._t = setTimeout(() => (el.hidden = true), 2200);
   }
 
-  /* ---------- 闋愯ō / 绋瓙璩囨枡 ---------- */
+  /* ---------- 預設種子資料 ---------- */
   function seedData() {
     const p1 = uid();
     const m1 = uid(), m2 = uid();
@@ -84,40 +84,40 @@
     const inDays = (n) => { const x = new Date(d); x.setDate(x.getDate() + n); return isoDay(x); };
     return {
       projects: [
-        { id: p1, name: '鎴戠殑绗竴鍊嬪皥妗?', color: '#5b8cff' },
-        { id: uid(), name: '缍茬珯鏀圭増', color: '#34d399' }
+        { id: p1, name: '我的第一個專案', color: '#5b8cff' },
+        { id: uid(), name: '網站改版', color: '#34d399' }
       ],
       members: [
-        { id: m1, name: '灏忔槑', color: '#5b8cff' },
-        { id: m2, name: '灏忕編', color: '#f472b6' }
+        { id: m1, name: '小明', color: '#5b8cff' },
+        { id: m2, name: '小美', color: '#f472b6' }
       ],
       tags: [
-        { id: tg1, name: '瑷▓', color: '#7c5bff' },
-        { id: tg2, name: '闁嬬櫦', color: '#34d399' },
-        { id: tg3, name: '绶婃�?', color: '#ff5d6c' }
+        { id: tg1, name: '設計', color: '#7c5bff' },
+        { id: tg2, name: '開發', color: '#34d399' },
+        { id: tg3, name: '緊急', color: '#ff5d6c' }
       ],
       tasks: [
-        { id: uid(), projectId: p1, title: '瑕忓妰鐢㈠搧闇�姹?', desc: '鏁寸悊浣跨敤鑰呮晠浜嬭垏鍎厛绱?', status: 'done', priority: 'high', due: inDays(-2), tags: [tg1], assignee: m1, createdAt: inDays(-5), completedAt: inDays(-1) },
-        { id: uid(), projectId: p1, title: '瑷▓棣栭爜浠嬮潰', desc: '', status: 'doing', priority: 'medium', due: inDays(0), tags: [tg1], assignee: m2, createdAt: inDays(-4), completedAt: null,
+        { id: uid(), projectId: p1, title: '規劃產品需求', desc: '整理使用者故事與優先級', status: 'done', priority: 'high', due: inDays(-2), tags: [tg1], assignee: m1, createdAt: inDays(-5), completedAt: inDays(-1) },
+        { id: uid(), projectId: p1, title: '設計首頁介面', desc: '', status: 'doing', priority: 'medium', due: inDays(0), tags: [tg1], assignee: m2, createdAt: inDays(-4), completedAt: null,
           subtasks: [
             { id: uid(), text: '收集參考案例', done: true },
             { id: uid(), text: '繪製線框圖', done: true },
             { id: uid(), text: '製作高保真稿', done: false },
             { id: uid(), text: '與團隊評審', done: false }
           ], attachments: [] },
-        { id: uid(), projectId: p1, title: '鎼缓鍓嶇妗嗘灦', desc: '鍒濆鍖栧皥妗堣垏璺敱', status: 'doing', priority: 'high', due: inDays(1), tags: [tg2], assignee: m1, createdAt: inDays(-3), completedAt: null,
+        { id: uid(), projectId: p1, title: '搭建前端框架', desc: '初始化專案與路由', status: 'doing', priority: 'high', due: inDays(1), tags: [tg2], assignee: m1, createdAt: inDays(-3), completedAt: null,
           subtasks: [
             { id: uid(), text: '初始化專案', done: true },
             { id: uid(), text: '設定路由', done: false }
           ], attachments: [] },
-        { id: uid(), projectId: p1, title: '淇京鐧诲叆閷', desc: '绶婃�ュ晱椤?', status: 'todo', priority: 'high', due: inDays(-1), tags: [tg3, tg2], assignee: m2, createdAt: inDays(-1), completedAt: null },
-        { id: uid(), projectId: p1, title: '鎾板浣跨敤鎵嬪唺', desc: '', status: 'todo', priority: 'low', due: inDays(4), tags: [], assignee: null, createdAt: inDays(0), completedAt: null }
+        { id: uid(), projectId: p1, title: '修復登入錯誤', desc: '緊急問題', status: 'todo', priority: 'high', due: inDays(-1), tags: [tg3, tg2], assignee: m2, createdAt: inDays(-1), completedAt: null },
+        { id: uid(), projectId: p1, title: '撰寫使用手冊', desc: '', status: 'todo', priority: 'low', due: inDays(4), tags: [], assignee: null, createdAt: inDays(0), completedAt: null }
       ],
       settings: { theme: 'dark', currentProject: 'all' }
     };
   }
 
-  /* ---------- 绡╅伕 ---------- */
+  /* ---------- 篩選 ---------- */
   function getFilters() {
     return {
       q: $('#searchInput').value.trim().toLowerCase(),
@@ -136,7 +136,7 @@
       if (f.member && t.assignee !== f.member) return false;
       if (f.q) {
         const proj = state.projects.find((p) => p.id === t.projectId);
-        const hay = (t.title + ' ' + (t.desc || '') + ' ' + (proj ? proj.name : '')).toLowerCase();
+        var hay = (t.title + ' ' + (t.desc || '') + ' ' + (proj ? proj.name : '')).toLowerCase();
         if (!hay.includes(f.q)) return false;
       }
       return true;
@@ -148,49 +148,47 @@
   function projectById(id) { return state.projects.find((p) => p.id === id); }
 
   /* ===================================================================
-     娓叉煋锛氬伌閭婃瑒
+     渲染：側邊欄
      =================================================================== */
   function renderSidebar() {
-    const list = $('#projectList');
-    const cur = state.settings.currentProject;
-    const countFor = (pid) => state.tasks.filter((t) => t.projectId === pid && t.status !== 'done').length;
+    var list = $('#projectList');
+    var cur = state.settings.currentProject;
+    var countFor = (pid) => state.tasks.filter((t) => t.projectId === pid && t.status !== 'done').length;
     list.innerHTML =
-      `<li class="all ${cur === 'all' ? 'active' : ''}" data-project="all">
-        <span class="dot" style="background:var(--accent)"></span> 鍏ㄩ儴灏堟
-        <span class="count">${state.tasks.length}</span>
-      </li>` +
-      state.projects.map((p) =>
-        `<li class="${cur === p.id ? 'active' : ''}" data-project="${p.id}">
-          <span class="dot" style="background:${p.color}"></span> ${esc(p.name)}
-          <span class="count">${countFor(p.id)}</span>
-        </li>`
-      ).join('');
-    $$('#projectList li').forEach((li) =>
-      li.addEventListener('click', () => {
+      '<li class="all ' + (cur === 'all' ? 'active' : '') + '" data-project="all">'
+    + '  <span class="dot" style="background:var(--accent)"></span> 全部專案'
+    + '  <span class="count">' + state.tasks.length + '</span>'
+    + '</li>'
+    + state.projects.map(function(p) {
+        return '<li class="' + (cur === p.id ? 'active' : '') + '" data-project="' + p.id + '">'
+             + '<span class="dot" style="background:' + p.color + '"></span> ' + esc(p.name)
+             + ' <span class="count">' + countFor(p.id) + '</span></li>';
+      }).join('');
+    $$('#projectList li').forEach(function(li) {
+      li.addEventListener('click', function() {
         state.settings.currentProject = li.dataset.project;
-        saveState();
-        renderAll();
-      })
-    );
+        saveState().then(renderAll);
+      });
+    });
 
-    // 鎴愬摗绡╅伕涓嬫媺
-    const fm = $('#filterMember');
-    const curMember = fm.value;
-    fm.innerHTML = '<option value="">鍏ㄩ儴鎴愬摗</option>' +
-      state.members.map((m) => `<option value="${m.id}">${esc(m.name)}</option>`).join('');
-    if (state.members.find((m) => m.id === curMember)) fm.value = curMember;
+    // 成員篩選下拉
+    var fm = $('#filterMember');
+    var curMember = fm.value;
+    fm.innerHTML = '<option value="">全部成員</option>' +
+      state.members.map(function(m) { return '<option value="' + m.id + '">' + esc(m.name) + '</option>'; }).join('');
+    if (state.members.some(function(m) { return m.id === curMember; })) fm.value = curMember;
   }
 
   /* ===================================================================
-     娓叉煋锛氳鍦栧垏鎻?
+     渲染：視圖切換
      =================================================================== */
   function renderAll() {
     renderSidebar();
     $('#viewTitle').textContent = VIEW_TITLES[currentView];
-    const proj = state.settings.currentProject === 'all' ? null : projectById(state.settings.currentProject);
-    $('#viewSubtitle').textContent = proj ? '路 ' + proj.name : '路 鍏ㄩ儴灏堟';
+    var proj = state.settings.currentProject === 'all' ? null : projectById(state.settings.currentProject);
+    $('#viewSubtitle').textContent = proj ? ' · ' + proj.name : ' · 全部專案';
     $('#addTaskBtn').style.display = currentView === 'settings' ? 'none' : '';
-    const c = $('#content');
+    var c = $('#content');
     c.innerHTML = '';
     if (currentView === 'board') c.appendChild(renderBoard());
     else if (currentView === 'list') c.appendChild(renderList());
@@ -199,37 +197,36 @@
     else if (currentView === 'settings') c.appendChild(renderSettings());
   }
 
-  /* ---------- 鐪嬫澘 ---------- */
+  /* ---------- 看板 ---------- */
   function renderBoard() {
-    const wrap = document.createElement('div');
+    var wrap = document.createElement('div');
     wrap.className = 'board';
-    const tasks = getFilteredTasks();
-    STATUSES.forEach((st) => {
-      const col = document.createElement('div');
+    var tasks = getFilteredTasks();
+    STATUSES.forEach(function(st) {
+      var col = document.createElement('div');
       col.className = 'board-col';
-      const items = tasks.filter((t) => t.status === st.key);
+      var items = tasks.filter(function(t) { return t.status === st.key; });
       col.innerHTML =
-        `<div class="col-head"><span class="bar" style="background:var(--${st.key})"></span>${st.label}
-          <span class="cnt">${items.length}</span></div>
-         <div class="col-body" data-status="${st.key}"></div>`;
-      const body = $('.col-body', col);
-      items.forEach((t) => body.appendChild(renderCard(t)));
-      const add = document.createElement('div');
+        '<div class="col-head"><span class="bar" style="background:var(--' + st.key + ')"></span>' + st.label
+      + '  <span class="cnt">' + items.length + '</span></div>'
+      + ' <div class="col-body" data-status="' + st.key + '"></div>';
+      var body = $('.col-body', col);
+      items.forEach(function(t) { body.appendChild(renderCard(t)); });
+      var add = document.createElement('div');
       add.className = 'add-card';
-      add.textContent = '锛? 鏂板';
-      add.addEventListener('click', () => openTaskModal(null, st.key));
+      add.textContent = '＋ 新增';
+      add.addEventListener('click', function() { openTaskModal(null, st.key); });
       body.appendChild(add);
 
-      body.addEventListener('dragover', (e) => { e.preventDefault(); body.classList.add('drag-over'); });
-      body.addEventListener('dragleave', () => body.classList.remove('drag-over'));
-      body.addEventListener('drop', (e) => {
-        e.preventDefault();
-        body.classList.remove('drag-over');
-        const id = e.dataTransfer.getData('text/plain');
-        const t = state.tasks.find((x) => x.id === id);
-        if (t && t.status !== st.key) {
-          t.status = st.key;
-          t.completedAt = st.key === 'done' ? todayStr() : null;
+      body.addEventListener('dragover', function(e) { e.preventDefault(); body.classList.add('drag-over'); });
+      body.addEventListener('dragleave', function() { body.classList.remove('drag-over'); });
+      body.addEventListener('drop', function(e) {
+        e.preventDefault(); body.classList.remove('drag-over');
+        var id = e.dataTransfer.getData('text/plain');
+        var tt = state.tasks.find(function(x) { return x.id === id; });
+        if (tt && tt.status !== st.key) {
+          tt.status = st.key;
+          tt.completedAt = st.key === 'done' ? todayStr() : null;
           saveState().then(renderAll);
         }
       });
@@ -239,569 +236,585 @@
   }
 
   function renderCard(t) {
-    const el = document.createElement('div');
-    el.className = `card p-${t.priority}`;
+    var el = document.createElement('div');
+    el.className = 'card p-' + t.priority;
     el.draggable = true;
-    const tags = (t.tags || []).map((id) => tagById(id)).filter(Boolean)
-      .map((tg) => `<span class="tag" style="color:${tg.color}">${esc(tg.name)}</span>`).join('');
-    const m = memberById(t.assignee);
-    const avatar = m ? `<span class="avatar" style="background:${m.color}" title="${esc(m.name)}">${esc(m.name[0])}</span>` : '';
-    let due = '';
+    var tags = (t.tags || []).map(function(id) { var tg = tagById(id); return tg ? '<span class="tag" style="color:' + tg.color + '">' + esc(tg.name) + '</span>' : ''; }).join('');
+    var m = memberById(t.assignee);
+    var avatar = m ? '<span class="avatar" style="background:' + m.color + '" title="' + esc(m.name) + '">' + esc(m.name[0]) + '</span>' : '';
+    var due = '';
     if (t.due) {
-      const cls = isOverdue(t) ? 'overdue' : (isSoon(t) ? 'soon' : '');
-      due = `<span class="due ${cls}">馃搮${fmtDue(t.due)}</span>`;
+      var cls = isOverdue(t) ? 'overdue' : (isSoon(t) ? 'soon' : '');
+      due = '<span class="due ' + cls + '">?' + fmtDue(t.due) + '</span>';
     }
     el.innerHTML =
-      `<div class="card-title">${esc(t.title)}</div>
-       <div class="card-meta">${due}${subMetaHTML(t)}${attMetaHTML(t)}${tags}${avatar}</div>`;
-    el.addEventListener('click', () => openTaskModal(t.id));
-    el.addEventListener('dragstart', (e) => {
+      '<div class="card-title">' + esc(t.title) + '</div>'
+    + ' <div class="card-meta">' + due + subMetaHTML(t) + attMetaHTML(t) + tags + avatar + '</div>';
+    el.addEventListener('click', function() { openTaskModal(t.id); });
+    el.addEventListener('dragstart', function(e) {
       e.dataTransfer.setData('text/plain', t.id);
       el.classList.add('dragging');
     });
-    el.addEventListener('dragend', () => el.classList.remove('dragging'));
+    el.addEventListener('dragend', function() { el.classList.remove('dragging'); });
     return el;
   }
 
-  /* ---------- 鍒楄〃 ---------- */
+  /* ---------- 列表 ---------- */
   function renderList() {
-    const tasks = getFilteredTasks().sort((a, b) => (a.due || '9').localeCompare(b.due || '9'));
-    const wrap = document.createElement('div');
+    var tasks = getFilteredTasks().sort(function(a, b) { return (a.due || '9').localeCompare(b.due || '9'); });
+    var wrap = document.createElement('div');
     if (!tasks.length) { wrap.innerHTML = emptyHTML(); return wrap; }
-    const rows = tasks.map((t) => {
-      const st = STATUSES.find((s) => s.key === t.status);
-      const pr = PRIORITIES.find((p) => p.key === t.priority);
-      const proj = projectById(t.projectId);
-      const m = memberById(t.assignee);
-      const avatar = m ? `<span class="avatar" style="background:${m.color}" title="${esc(m.name)}">${esc(m.name[0])}</span>` : '鈥?';
-      const due = t.due ? `<span class="${isOverdue(t) ? 'due overdue' : (isSoon(t) ? 'due soon' : '')}">${fmtDue(t.due)}</span>` : '鈥?';
-      return `<tr data-id="${t.id}">
-        <td><span class="prio-dot" style="background:var(--${t.priority === 'high' ? 'danger' : t.priority === 'medium' ? 'warning' : 'todo'})"></span>${pr.label}</td>
-        <td>${esc(t.title)} ${subMetaHTML(t)} ${attMetaHTML(t)}</td>
-        <td><span class="pill ${t.status}">${st.label}</span></td>
-        <td>${proj ? esc(proj.name) : '鈥?'}</td>
-        <td>${avatar}</td>
-        <td>${due}</td>
-      </tr>`;
+    var rows = tasks.map(function(t) {
+      var st = STATUSES.find(function(s) { return s.key === t.status; });
+      var pr = PRIORITIES.find(function(p) { return p.key === t.priority; });
+      var proj = projectById(t.projectId);
+      var m = memberById(t.assignee);
+      var avatar = m ? '<span class="avatar" style="background:' + m.color + '" title="' + esc(m.name) + '">' + esc(m.name[0]) + '</span>' : '—';
+      var due = t.due ? '<span class="' + (isOverdue(t) ? 'due overdue' : (isSoon(t) ? 'due soon' : '')) + '">' + fmtDue(t.due) + '</span>' : '—';
+      return '<tr data-id="' + t.id + '">'
+        + '<td><span class="prio-dot" style="background:var(--' + (t.priority === 'high' ? 'danger' : t.priority === 'medium' ? 'warning' : 'todo') + ')"></span>' + pr.label + '</td>'
+        + '<td>' + esc(t.title) + ' ' + subMetaHTML(t) + ' ' + attMetaHTML(t) + '</td>'
+        + '<td><span class="pill ' + t.status + '">' + st.label + '</span></td>'
+        + '<td>' + (proj ? esc(proj.name) : '—') + '</td>'
+        + '<td>' + avatar + '</td>'
+        + '<td>' + due + '</td>'
+        + '</tr>';
     }).join('');
     wrap.innerHTML =
-      `<table class="list-table">
-        <thead><tr><th>鍎厛绱?</th><th>浠诲嫏</th><th>鐙�鎱?</th><th>灏堟</th><th>璨犺铂浜?</th><th>鎴</th></tr></thead>
-        <tbody>${rows}</tbody></table>`;
-    $$('tbody tr', wrap).forEach((tr) => tr.addEventListener('click', () => openTaskModal(tr.dataset.id)));
+      '<table class="list-table">'
+    + '  <thead><tr><th>優先級</th><th>任務</th><th>狀態</th><th>專案</th><th>負責人</th><th>截止</th></tr></thead>'
+    + '  <tbody>' + rows + '</tbody></table>';
+    $$('tbody tr', wrap).forEach(function(tr) { tr.addEventListener('click', function() { openTaskModal(tr.dataset.id); }); });
     return wrap;
   }
 
-  /* ---------- 鏃ユ泦 ---------- */
+  /* ---------- 日曆 ---------- */
   function renderCalendar() {
-    const wrap = document.createElement('div');
-    const now = new Date();
+    var wrap = document.createElement('div');
+    var now = new Date();
     if (calYear == null) { calYear = now.getFullYear(); calMonth = now.getMonth(); }
-    const first = new Date(calYear, calMonth, 1);
-    const startDow = first.getDay();
-    const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
-    const prevDays = new Date(calYear, calMonth, 0).getDate();
-    const tasks = getFilteredTasks();
+    var first = new Date(calYear, calMonth, 1);
+    var startDow = first.getDay();
+    var daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+    var prevDays = new Date(calYear, calMonth, 0).getDate();
+    var tasks = getFilteredTasks();
 
-    let cells = '';
-    const dows = ['鏃?', '涓�', '浜?', '涓?', '鍥?', '浜?', '鍏?'];
-    cells += dows.map((d) => `<div class="cal-dow">${d}</div>`).join('');
-    // 涓婂�嬫湀瑁滀綅
-    for (let i = startDow - 1; i >= 0; i--) {
-      cells += `<div class="cal-cell out"><span class="cal-date">${prevDays - i}</span></div>`;
+    var cells = '';
+    var dows = ['日', '一', '二', '三', '四', '五', '六'];
+    dows.forEach(function(d) { cells += '<div class="cal-dow">' + d + '</div>'; });
+    for (var i = startDow - 1; i >= 0; i--) {
+      cells += '<div class="cal-cell out"><span class="cal-date">' + prevDays - i + '</span></div>';
     }
-    for (let day = 1; day <= daysInMonth; day++) {
-      const ds = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const isToday = ds === todayStr();
-      const evs = tasks.filter((t) => t.due === ds);
-      const evHtml = evs.map((t) =>
-        `<div class="cal-ev ${t.status === 'done' ? 'done' : ''} ${isOverdue(t) ? 'overdue' : ''}" data-id="${t.id}" style="border-left-color:${t.status === 'done' ? 'var(--done)' : t.priority === 'high' ? 'var(--danger)' : 'var(--doing)'}">${esc(t.title)}</div>`
-      ).join('');
-      cells += `<div class="cal-cell ${isToday ? 'today' : ''}"><span class="cal-date">${day}</span>${evHtml}</div>`;
+    for (var day = 1; day <= daysInMonth; day++) {
+      var ds = calYear + '-' + String(calMonth + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+      var isToday = ds === todayStr();
+      var evs = tasks.filter(function(tt) { return tt.due === ds; });
+      var evHtml = evs.map(function(tt) {
+        return '<div class="cal-ev ' + (tt.status === 'done' ? 'done' : '') + ' ' + (isOverdue(tt) ? 'overdue' : '') + '" data-id="' + tt.id + '" style="border-left-color:' + (tt.status === 'done' ? 'var(--done)' : tt.priority === 'high' ? 'var(--danger)' : 'var(--doing)') + '">' + esc(tt.title) + '</div>';
+      }).join('');
+      cells += '<div class="cal-cell ' + (isToday ? 'today' : '') + '"><span class="cal-date">' + day + '</span>' + evHtml + '</div>';
     }
-    // 涓嬪�嬫湀瑁滀綅
-    const total = startDow + daysInMonth;
-    const tail = (7 - (total % 7)) % 7;
-    for (let i = 1; i <= tail; i++) cells += `<div class="cal-cell out"><span class="cal-date">${i}</span></div>`;
+    var total = startDow + daysInMonth;
+    var tail = (7 - (total % 7)) % 7;
+    for (var j = 1; j <= tail; j++) cells += '<div class="cal-cell out"><span class="cal-date">' + j + '</span></div>';
 
     wrap.innerHTML =
-      `<div class="cal-head">
-        <button class="cal-nav" id="calPrev">鈥? 涓婂�嬫湀</button>
-        <h2>${calYear} 骞? ${calMonth + 1} 鏈?</h2>
-        <button class="cal-nav" id="calNext">涓嬪�嬫湀 鈥?</button>
-        <button class="cal-nav" id="calToday">浠婂ぉ</button>
-      </div>
-      <div class="cal-grid">${cells}</div>`;
+      '<div class="cal-head">'
+    + '  <button class="cal-nav" id="calPrev">? 上個月</button>'
+    + '  <h2>' + calYear + ' 年 ' + (calMonth + 1) + ' 月</h2>'
+    + '  <button class="cal-nav" id="calNext">下個月 ?</button>'
+    + '  <button class="cal-nav" id="calToday">今天</button>'
+    + '</div>'
+    + ' <div class="cal-grid">' + cells + '</div>';
 
-    $('#calPrev', wrap).addEventListener('click', () => { calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } renderAll(); });
-    $('#calNext', wrap).addEventListener('click', () => { calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; } renderAll(); });
-    $('#calToday', wrap).addEventListener('click', () => { const n = new Date(); calYear = n.getFullYear(); calMonth = n.getMonth(); renderAll(); });
-    $$('.cal-ev', wrap).forEach((ev) => ev.addEventListener('click', () => openTaskModal(ev.dataset.id)));
+    $('#calPrev', wrap).addEventListener('click', function() { calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } renderAll(); });
+    $('#calNext', wrap).addEventListener('click', function() { calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; } renderAll(); });
+    $('#calToday', wrap).addEventListener('click', function() { var n = new Date(); calYear = n.getFullYear(); calMonth = n.getMonth(); renderAll(); });
+    $$('.cal-ev', wrap).forEach(function(ev) { ev.addEventListener('click', function() { openTaskModal(ev.dataset.id); }); });
     return wrap;
   }
 
-  /* ---------- 绲辫▓ ---------- */
+  /* ---------- 統計 ---------- */
   function renderStats() {
-    const tasks = state.tasks.filter((t) => state.settings.currentProject === 'all' || t.projectId === state.settings.currentProject);
-    const total = tasks.length;
-    const doing = tasks.filter((t) => t.status === 'doing').length;
-    const done = tasks.filter((t) => t.status === 'done').length;
-    const overdue = tasks.filter(isOverdue).length;
-    const doneRate = total ? Math.round((done / total) * 100) : 0;
+    var tasks = state.tasks.filter(function(t) { return state.settings.currentProject === 'all' || t.projectId === state.settings.currentProject; });
+    var total = tasks.length;
+    var doing = tasks.filter(function(t) { return t.status === 'doing'; }).length;
+    var done = tasks.filter(function(t) { return t.status === 'done'; }).length;
+    var overdue = tasks.filter(isOverdue).length;
+    var doneRate = total ? Math.round((done / total) * 100) : 0;
 
-    const wrap = document.createElement('div');
+    var wrap = document.createElement('div');
     wrap.innerHTML =
-      `<div class="stats-grid">
-        <div class="stat-card"><div class="num">${total}</div><div class="lbl">浠诲嫏绺芥暩</div></div>
-        <div class="stat-card"><div class="num" style="color:var(--doing)">${doing}</div><div class="lbl">閫茶涓?</div></div>
-        <div class="stat-card"><div class="num" style="color:var(--done)">${done}</div><div class="lbl">宸插畬鎴愶紙${doneRate}%锛?</div></div>
-        <div class="stat-card"><div class="num" style="color:var(--danger)">${overdue}</div><div class="lbl">宸查�炬湡</div></div>
-      </div>
-      <div class="charts">
-        <div class="chart-box"><h3>鐙�鎱嬪垎甯?</h3><canvas id="chartStatus" height="220"></canvas></div>
-        <div class="chart-box"><h3>鍎厛绱氬垎甯?</h3><canvas id="chartPrio" height="220"></canvas></div>
-        <div class="chart-box"><h3>鍚勫皥妗堜换鍕欐暩</h3><canvas id="chartProj" height="220"></canvas></div>
-        <div class="chart-box"><h3>姣忛�卞畬鎴愯定鍕?</h3><canvas id="chartTrend" height="220"></canvas></div>
-      </div>`;
+      '<div class="stats-grid">'
+    + '  <div class="stat-card"><div class="num">' + total + '</div><div class="lbl">任務總數</div></div>'
+    + '  <div class="stat-card"><div class="num" style="color:var(--doing)">' + doing + '</div><div class="lbl">進行中</div></div>'
+    + '  <div class="stat-card"><div class="num" style="color:var(--done)">' + done + '</div><div class="lbl">已完成（' + doneRate + '%）</div></div>'
+    + '  <div class="stat-card"><div class="num" style="color:var(--danger)">' + overdue + '</div><div class="lbl">已逾期</div></div>'
+    + '</div>'
+    + ' <div class="charts">'
+    + '  <div class="chart-box"><h3>狀態分布</h3><canvas id="chartStatus" height="220"></canvas></div>'
+    + '  <div class="chart-box"><h3>優先級分布</h3><canvas id="chartPrio" height="220"></canvas></div>'
+    + '  <div class="chart-box"><h3>各專案任務數</h3><canvas id="chartProj" height="220"></canvas></div>'
+    + '  <div class="chart-box"><h3>每週完成趨勢</h3><canvas id="chartTrend" height="220"></canvas></div>'
+    + '</div>';
 
-    // 為統計卡片加入圖示與完成率進度條
-    const ICON = {
+    // 圖示 SVG
+    var ICONS = {
       total: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>',
       doing: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',
       done: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="8 12 11 15 16 9"/></svg>',
       overdue: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h16.9a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
     };
-    const cards = wrap.querySelectorAll('.stats-grid .stat-card');
-    [ICON.total, ICON.doing, ICON.done, ICON.overdue].forEach((svg, i) => {
-      const ico = document.createElement('div');
+    var cards = wrap.querySelectorAll('.stats-grid .stat-card');
+    ['total', 'doing', 'done', 'overdue'].forEach(function(key, i) {
+      var ico = document.createElement('div');
       ico.className = 'stat-ico';
-      ico.innerHTML = svg;
+      ico.innerHTML = ICONS[key];
       if (cards[i]) cards[i].appendChild(ico);
     });
-    const doneCard = cards[2];
+    var doneCard = cards[2];
     if (doneCard) {
-      const bar = document.createElement('div');
+      var bar = document.createElement('div');
       bar.className = 'stat-bar';
       bar.innerHTML = '<span style="width:' + doneRate + '%"></span>';
       doneCard.appendChild(bar);
     }
 
-    requestAnimationFrame(() => {
-      drawBar($('#chartStatus', wrap), ['寰呰睛', '閫茶涓?', '宸插畬鎴?'],
-        [tasks.filter((t) => t.status === 'todo').length, doing, done],
+    requestAnimationFrame(function() {
+      drawBar($('#chartStatus', wrap), ['待辦', '進行中', '已完成'],
+        [tasks.filter(function(t) { return t.status === 'todo'; }).length, doing, done],
         ['var(--todo)', 'var(--doing)', 'var(--done)']);
       drawDonut($('#chartPrio', wrap),
-        ['楂?', '涓?', '浣?'],
-        [tasks.filter((t) => t.priority === 'high').length, tasks.filter((t) => t.priority === 'medium').length, tasks.filter((t) => t.priority === 'low').length],
+        ['高', '中', '低'],
+        [tasks.filter(function(t) { return t.priority === 'high'; }).length, tasks.filter(function(t) { return t.priority === 'medium'; }).length, tasks.filter(function(t) { return t.priority === 'low'; }).length],
         ['var(--danger)', 'var(--warning)', 'var(--todo)']);
-      const projCounts = state.projects.map((p) => ({ name: p.name, n: tasks.filter((t) => t.projectId === p.id).length, c: p.color }));
-      drawBar($('#chartProj', wrap), projCounts.map((p) => p.name), projCounts.map((p) => p.n), projCounts.map((p) => p.c));
+      var projCounts = state.projects.map(function(p) { return { name: p.name, n: tasks.filter(function(t) { return t.projectId === p.id; }).length, c: p.color }; });
+      drawBar($('#chartProj', wrap), projCounts.map(function(p) { return p.name; }), projCounts.map(function(p) { return p.n; }), projCounts.map(function(p) { return p.c; }));
       drawTrend($('#chartTrend', wrap), tasks);
     });
     return wrap;
   }
 
-  /* ---------- 瑷畾 ---------- */
+  /* ---------- 設定 ---------- */
   function renderSettings() {
-    const wrap = document.createElement('div');
+    var wrap = document.createElement('div');
     wrap.innerHTML =
-      `<div class="settings-grid">
-        <div class="set-box">
-          <h3>鎴愬摗绠＄悊</h3>
-          <div id="memberChips">${state.members.map((m) =>
-            `<span class="chip"><span class="avatar" style="background:${m.color}">${esc(m.name[0])}</span>${esc(m.name)}<span class="x" data-mid="${m.id}">鉁?</span></span>`
-          ).join('')}</div>
-          <div class="row" style="margin-top:10px">
-            <input id="newMember" placeholder="鎴愬摗鍚嶇ū" />
-            <input id="newMemberColor" type="color" value="#5b8cff" style="width:40px;height:36px;border:none;background:none" />
-            <button class="primary-btn" id="addMember">鏂板</button>
-          </div>
-        </div>
+      '<div class="settings-grid">'
+    + '  <div class="set-box">'
+    + '    <h3>成員管理</h3>'
+    + '    <div id="memberChips">' + state.members.map(function(m) {
+        return '<span class="chip"><span class="avatar" style="background:' + m.color + '">' + esc(m.name[0]) + '</span>' + esc(m.name) + '<span class="x" data-mid="' + m.id + '">?</span></span>';
+      }).join('') + '</div>'
+    + '    <div class="row" style="margin-top:10px">'
+    + '      <input id="newMember" placeholder="成員名稱" />'
+    + '      <input id="newMemberColor" type="color" value="#5b8cff" style="width:40px;height:36px;border:none;background:none" />'
+    + '      <button class="primary-btn" id="addMember">新增</button>'
+    + '    </div>'
+    + '  </div>'
+    + ''
+    + '  <div class="set-box">'
+    + '    <h3>標籤管理</h3>'
+    + '    <div id="tagChips">' + state.tags.map(function(tg) {
+        return '<span class="chip"><span class="dot" style="width:10px;height:10px;border-radius:50%;background:' + tg.color + '"></span>' + esc(tg.name) + '<span class="x" data-tid="' + tg.id + '">?</span></span>';
+      }).join('') + '</div>'
+    + '    <div class="row" style="margin-top:10px">'
+    + '      <input id="newTag" placeholder="標籤名稱" />'
+    + '      <input id="newTagColor" type="color" value="#7c5bff" style="width:40px;height:36px;border:none;background:none" />'
+    + '      <button class="primary-btn" id="addTag">新增</button>'
+    + '    </div>'
+    + '  </div>'
+    + ''
+    + '  <div class="set-box">'
+    + '    <h3>外觀主題</h3>'
+    + '    <div class="row" id="themeOpts">'
+    + THEMES.map(function(th) {
+        return '<button class="theme-opt ' + (state.settings.theme === th.key ? 'active' : '') + '" data-theme="' + th.key + '">'
+             + '<span class="swatch" style="background:' + th.swatch + ';border:1px solid var(--border)"></span>' + th.label + '</button>';
+      }).join('')
+    + '    </div>'
+    + '  </div>'
+    + ''
+    + '  <div class="set-box">'
+    + '    <h3>資料與提醒</h3>'
+    + '    <div class="row" style="margin-bottom:10px">'
+    + '      <button class="ghost-btn" id="exportBtn">匯出備份 (JSON)</button>'
+    + '      <button class="ghost-btn" id="importBtn">匯入備份</button>'
+    + '    </div>'
+    + '    <div class="row" style="margin-bottom:10px">'
+    + '      <button class="ghost-btn" id="remindBtn">立即檢查提醒</button>'
+    + '      <button class="ghost-btn" id="seedBtn">載入範例資料</button>'
+    + '    </div>'
+    + '    <p style="color:var(--text-dim);font-size:12px;line-height:1.6">'
+    + '      資料自動儲存在本機應用程式資料夾；提醒會在啟動時與每 5 分鐘檢查逾期與今日到期任務。'
+    + '    </p>'
+    + '  </div>'
+    + '</div>';
 
-        <div class="set-box">
-          <h3>妯欑堡绠＄悊</h3>
-          <div id="tagChips">${state.tags.map((tg) =>
-            `<span class="chip"><span class="dot" style="width:10px;height:10px;border-radius:50%;background:${tg.color}"></span>${esc(tg.name)}<span class="x" data-tid="${tg.id}">鉁?</span></span>`
-          ).join('')}</div>
-          <div class="row" style="margin-top:10px">
-            <input id="newTag" placeholder="妯欑堡鍚嶇ū" />
-            <input id="newTagColor" type="color" value="#7c5bff" style="width:40px;height:36px;border:none;background:none" />
-            <button class="primary-btn" id="addTag">鏂板</button>
-          </div>
-        </div>
-
-        <div class="set-box">
-          <h3>澶栬涓婚</h3>
-          <div class="row" id="themeOpts">
-            ${THEMES.map((th) => `<button class="theme-opt ${state.settings.theme === th.key ? 'active' : ''}" data-theme="${th.key}">
-              <span class="swatch" style="background:${th.swatch};border:1px solid var(--border)"></span>${th.label}</button>`).join('')}
-          </div>
-        </div>
-
-        <div class="set-box">
-          <h3>璩囨枡鑸囨彁閱?</h3>
-          <div class="row" style="margin-bottom:10px">
-            <button class="ghost-btn" id="exportBtn">鍖嚭鍌欎唤 (JSON)</button>
-            <button class="ghost-btn" id="importBtn">鍖叆鍌欎唤</button>
-          </div>
-          <div class="row" style="margin-bottom:10px">
-            <button class="ghost-btn" id="remindBtn">绔嬪嵆妾㈡煡鎻愰啋</button>
-            <button class="ghost-btn" id="seedBtn">杓夊叆绡勪緥璩囨枡</button>
-          </div>
-          <p style="color:var(--text-dim);font-size:12px;line-height:1.6">
-            璩囨枡鑷嫊鍎插瓨鍦ㄦ湰姗熸噳鐢ㄧ▼寮忚硣鏂欏ぞ锛涙彁閱掓渻鍦ㄥ暉鍕曟檪鑸囨瘡 5 鍒嗛悩妾㈡煡閫炬湡鑸囦粖鏃ュ埌鏈熶换鍕欍�?
-          </p>
-        </div>
-      </div>`;
-
-    // 鎴愬摗
-    $('#addMember', wrap).addEventListener('click', () => {
-      const name = $('#newMember', wrap).value.trim();
-      if (!name) return toast('璜嬭几鍏ユ垚鍝″悕绋?');
-      state.members.push({ id: uid(), name, color: $('#newMemberColor', wrap).value });
+    // 成員
+    $('#addMember', wrap).addEventListener('click', function() {
+      var name = $('#newMember', wrap).value.trim();
+      if (!name) return toast('請輸入成員名稱');
+      state.members.push({ id: uid(), name: name, color: $('#newMemberColor', wrap).value });
       saveState().then(renderAll);
     });
-    $$('#memberChips .x', wrap).forEach((x) => x.addEventListener('click', () => {
-      const id = x.dataset.mid;
-      state.members = state.members.filter((m) => m.id !== id);
-      state.tasks.forEach((t) => { if (t.assignee === id) t.assignee = null; });
-      saveState().then(renderAll);
-    }));
-    // 妯欑堡
-    $('#addTag', wrap).addEventListener('click', () => {
-      const name = $('#newTag', wrap).value.trim();
-      if (!name) return toast('璜嬭几鍏ユ绫ゅ悕绋?');
-      state.tags.push({ id: uid(), name, color: $('#newTagColor', wrap).value });
+    $$('#memberChips .x', wrap).forEach(function(x) {
+      x.addEventListener('click', function() {
+        var id = x.dataset.mid;
+        state.members = state.members.filter(function(m) { return m.id !== id; });
+        state.tasks.forEach(function(t) { if (t.assignee === id) t.assignee = null; });
+        saveState().then(renderAll);
+      });
+    });
+    // 標籤
+    $('#addTag', wrap).addEventListener('click', function() {
+      var name = $('#newTag', wrap).value.trim();
+      if (!name) return toast('請輸入標籤名稱');
+      state.tags.push({ id: uid(), name: name, color: $('#newTagColor', wrap).value });
       saveState().then(renderAll);
     });
-    $$('#tagChips .x', wrap).forEach((x) => x.addEventListener('click', () => {
-      const id = x.dataset.tid;
-      state.tags = state.tags.filter((t) => t.id !== id);
-      state.tasks.forEach((t) => { t.tags = (t.tags || []).filter((g) => g !== id); });
-      saveState().then(renderAll);
-    }));
-    // 涓婚
-    $$('#themeOpts .theme-opt', wrap).forEach((b) => b.addEventListener('click', () => {
-      state.settings.theme = b.dataset.theme;
-      applyTheme();
-      saveState().then(renderAll);
-    }));
-    // 璩囨枡
-    $('#exportBtn', wrap).addEventListener('click', async () => {
-      const r = await window.api.exportData(state);
-      if (r.ok) toast('宸插尟鍑鸿嚦 ' + r.filePath);
-      else if (!r.canceled) toast('鍖嚭澶辨晽锛?' + r.error);
+    $$('#tagChips .x', wrap).forEach(function(x) {
+      x.addEventListener('click', function() {
+        var id = x.dataset.tid;
+        state.tags = state.tags.filter(function(t) { return t.id !== id; });
+        state.tasks.forEach(function(t) { t.tags = (t.tags || []).filter(function(g) { return g !== id; }); });
+        saveState().then(renderAll);
+      });
     });
-    $('#importBtn', wrap).addEventListener('click', async () => {
-      const r = await window.api.importData();
-      if (r.ok) { state = r.data; await saveState(); renderAll(); toast('鍖叆鎴愬姛'); }
-      else if (!r.canceled) toast('鍖叆澶辨晽锛?' + r.error);
+    // 主題
+    $$('#themeOpts .theme-opt', wrap).forEach(function(b) {
+      b.addEventListener('click', function() {
+        state.settings.theme = b.dataset.theme;
+        applyTheme();
+        saveState().then(renderAll);
+      });
     });
-    $('#remindBtn', wrap).addEventListener('click', () => { checkReminders(true); });
-    $('#seedBtn', wrap).addEventListener('click', () => { state = seedData(); saveState().then(renderAll); toast('宸茶級鍏ョ瘎渚嬭硣鏂?'); });
+    // 資料
+    $('#exportBtn', wrap).addEventListener('click', async function() {
+      var r = await window.api.exportData(state);
+      if (r.ok) toast('已匯出至 ' + r.filePath);
+      else if (!r.canceled) toast('匯出失敗：' + r.error);
+    });
+    $('#importBtn', wrap).addEventListener('click', async function() {
+      var r = await window.api.importData();
+      if (r.ok) { state = r.data; await saveState(); renderAll(); toast('匯入成功'); }
+      else if (!r.canceled) toast('匯入失敗：' + r.error);
+    });
+    $('#remindBtn', wrap).addEventListener('click', function() { checkReminders(true); });
+    $('#seedBtn', wrap).addEventListener('click', function() { state = seedData(); saveState().then(renderAll); toast('已載入範例資料'); });
     return wrap;
   }
 
   /* ===================================================================
-     浠诲嫏灏嶈┍妗?
+     任務對話框
      =================================================================== */
-  let editingTags = new Set();
-  let editingId = null, editingSubtasks = [], editingAttachments = [];
+  var editingTags = new Set();
+  var editingId = null, editingSubtasks = [], editingAttachments = [];
   function openTaskModal(taskId, presetStatus) {
-    const isEdit = !!taskId;
-    const t = isEdit ? state.tasks.find((x) => x.id === taskId) : null;
+    var isEdit = !!taskId;
+    var t = isEdit ? state.tasks.find(function(x) { return x.id === taskId; }) : null;
     editingTags = new Set(t ? (t.tags || []) : []);
     editingId = taskId || uid();
-    editingSubtasks = (t ? (t.subtasks || []) : []).map((s) => ({ ...s }));
-    editingAttachments = (t ? (t.attachments || []) : []).map((a) => ({ ...a }));
-    $('#taskModalTitle').textContent = isEdit ? '绶ㄨ集浠诲嫏' : '鏂板浠诲嫏';
+    editingSubtasks = (t ? (t.subtasks || []) : []).map(function(s) { return Object.assign({}, s); });
+    editingAttachments = (t ? (t.attachments || []) : []).map(function(a) { return Object.assign({}, a); });
+    $('#taskModalTitle').textContent = isEdit ? '編輯任務' : '新增任務';
     $('#taskDeleteBtn').hidden = !isEdit;
 
-    const projOpts = state.projects.map((p) => `<option value="${p.id}" ${t && t.projectId === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('');
-    const statusOpts = STATUSES.map((s) => `<option value="${s.key}" ${(t ? t.status : presetStatus || 'todo') === s.key ? 'selected' : ''}>${s.label}</option>`).join('');
-    const prioOpts = PRIORITIES.map((p) => `<option value="${p.key}" ${(t ? t.priority : 'medium') === p.key ? 'selected' : ''}>${p.label}</option>`).join('');
-    const memberOpts = '<option value="">鏈寚娲?</option>' + state.members.map((m) => `<option value="${m.id}" ${t && t.assignee === m.id ? 'selected' : ''}>${esc(m.name)}</option>`).join('');
-    const tagChips = state.tags.map((tg) =>
-      `<span class="tag ${editingTags.has(tg.id) ? 'sel' : ''}" data-tid="${tg.id}" style="color:${tg.color}">${esc(tg.name)}</span>`).join('') || '<span style="color:var(--text-dim)">灏氱劇妯欑堡</span>';
+    var projOpts = state.projects.map(function(p) { return '<option value="' + p.id + '"' + (t && t.projectId === p.id ? ' selected' : '') + '>' + esc(p.name) + '</option>'; }).join('');
+    var statusOpts = STATUSES.map(function(s) { return '<option value="' + s.key + '"' + ((t ? t.status : presetStatus || 'todo') === s.key ? ' selected' : '') + '>' + s.label + '</option>'; }).join('');
+    var prioOpts = PRIORITIES.map(function(p) { return '<option value="' + p.key + '"' + ((t ? t.priority : 'medium') === p.key ? ' selected' : '') + '>' + p.label + '</option>'; }).join('');
+    var memberOpts = '<option value="">未指派</option>' + state.members.map(function(m) { return '<option value="' + m.id + '"' + (t && t.assignee === m.id ? ' selected' : '') + '>' + esc(m.name) + '</option>'; }).join('');
+    var tagChips = state.tags.map(function(tg) {
+      return '<span class="tag ' + (editingTags.has(tg.id) ? 'sel' : '') + '" data-tid="' + tg.id + '" style="color:' + tg.color + '">' + esc(tg.name) + '</span>';
+    }).join('') || '<span style="color:var(--text-dim)">尚無標籤</span>';
 
     $('#taskModalBody').innerHTML =
-      `<div class="field"><label>妯欓</label><input id="fTitle" value="${t ? esc(t.title) : ''}" placeholder="杓稿叆浠诲嫏妯欓" /></div>
-       <div class="field"><label>鎻忚堪</label><textarea id="fDesc" rows="3" placeholder="瑁滃厖瑾槑锛堥伕濉級">${t ? esc(t.desc || '') : ''}</textarea></div>
-       <div class="row">
-         <div class="field" style="flex:1"><label>灏堟</label><select id="fProject">${projOpts}</select></div>
-         <div class="field" style="flex:1"><label>鐙�鎱?</label><select id="fStatus">${statusOpts}</select></div>
-       </div>
-       <div class="row">
-         <div class="field" style="flex:1"><label>鍎厛绱?</label><select id="fPrio">${prioOpts}</select></div>
-         <div class="field" style="flex:1"><label>璨犺铂浜?</label><select id="fMember">${memberOpts}</select></div>
-         <div class="field" style="flex:1"><label>鎴鏃ユ湡</label><input id="fDue" type="date" value="${t && t.due ? t.due : ''}" /></div>
-       </div>
-       <div class="field"><label>妯欑堡</label><div class="tag-pick" id="fTags">${tagChips}</div></div>
-       <div class="field"><label>子清單</label>
-         <div id="fSubs"></div>
-         <div class="row"><input id="fSubInput" placeholder="新增子項目…" style="flex:1" /><button class="ghost-btn" id="addSub" type="button">＋</button></div>
-       </div>
-       <div class="field"><label>附件</label>
-         <div id="fAttach"></div>
-         <button class="ghost-btn" id="addAttachBtn" type="button">＋ 新增附件</button>
-       </div>`;
+      '<div class="field"><label>標題</label><input id="fTitle" value="' + (t ? esc(t.title) : '') + '" placeholder="輸入任務標題" /></div>'
+    + ' <div class="field"><label>描述</label><textarea id="fDesc" rows="3" placeholder="補充說明（選填）">' + (t ? esc(t.desc || '') : '') + '</textarea></div>'
+    + ' <div class="row">'
+    + '   <div class="field" style="flex:1"><label>專案</label><select id="fProject">' + projOpts + '</select></div>'
+    + '   <div class="field" style="flex:1"><label>狀態</label><select id="fStatus">' + statusOpts + '</select></div>'
+    + ' </div>'
+    + ' <div class="row">'
+    + '   <div class="field" style="flex:1"><label>優先級</label><select id="fPrio">' + prioOpts + '</select></div>'
+    + '   <div class="field" style="flex:1"><label>負責人</label><select id="fMember">' + memberOpts + '</select></div>'
+    + '   <div class="field" style="flex:1"><label>截止日期</label><input id="fDue" type="date" value="' + (t && t.due ? t.due : '') + '" /></div>'
+    + ' </div>'
+    + ' <div class="field"><label>標籤</label><div class="tag-pick" id="fTags">' + tagChips + '</div></div>'
+    + ' <div class="field"><label>子清單</label>'
+    + '   <div id="fSubs"></div>'
+    + '   <div class="row"><input id="fSubInput" placeholder="新增子項目…" style="flex:1" /><button class="ghost-btn" id="addSub" type="button">＋</button></div>'
+    + ' </div>'
+    + ' <div class="field"><label>附件</label>'
+    + '   <div id="fAttach"></div>'
+    + '   <button class="ghost-btn" id="addAttachBtn" type="button">＋ 新增附件</button>'
+    + ' </div>';
 
-    $$('#fTags .tag', $('#taskModalBody')).forEach((chip) =>
-      chip.addEventListener('click', () => {
-        const id = chip.dataset.tid;
+    $$('#fTags .tag', $('#taskModalBody')).forEach(function(chip) {
+      chip.addEventListener('click', function() {
+        var id = chip.dataset.tid;
         if (editingTags.has(id)) editingTags.delete(id); else editingTags.add(id);
         chip.classList.toggle('sel');
-      })
-    );
+      });
+    });
 
     // 子清單
     function renderSubs() {
-      const box = $('#fSubs', $('#taskModalBody'));
+      var box = $('#fSubs', $('#taskModalBody'));
       if (!editingSubtasks.length) { box.innerHTML = '<span style="color:var(--text-dim);font-size:12px">尚無子項目</span>'; return; }
-      box.innerHTML = editingSubtasks.map((s, i) =>
-        `<div class="sub-item">
-          <label><input type="checkbox" data-i="${i}" ${s.done ? 'checked' : ''}/> <span class="${s.done ? 'sub-done' : ''}">${esc(s.text)}</span></label>
-          <span class="sub-x" data-i="${i}" title="刪除">?</span>
-        </div>`).join('');
-      $$('#fSubs input[type=checkbox]', $('#taskModalBody')).forEach((c) =>
-        c.addEventListener('change', () => { editingSubtasks[+c.dataset.i].done = c.checked; renderSubs(); }));
-      $$('#fSubs .sub-x', $('#taskModalBody')).forEach((x) =>
-        x.addEventListener('click', () => { editingSubtasks.splice(+x.dataset.i, 1); renderSubs(); }));
+      box.innerHTML = editingSubtasks.map(function(s, i) {
+        return '<div class="sub-item">'
+      + '  <label><input type="checkbox" data-i="' + i + '" ' + (s.done ? 'checked' : '') + '/> <span class="' + (s.done ? 'sub-done' : '') + '">' + esc(s.text) + '</span></label>'
+      + '  <span class="sub-x" data-i="' + i + '" title="刪除">?</span>'
+      + '</div>';
+      }).join('');
+      $$('#fSubs input[type=checkbox]', $('#taskModalBody')).forEach(function(c) {
+        c.addEventListener('change', function() { editingSubtasks[+c.dataset.i].done = c.checked; renderSubs(); });
+      });
+      $$('#fSubs .sub-x', $('#taskModalBody')).forEach(function(x) {
+        x.addEventListener('click', function() { editingSubtasks.splice(+x.dataset.i, 1); renderSubs(); });
+      });
     }
-    $('#addSub', $('#taskModalBody')).addEventListener('click', () => {
-      const v = $('#fSubInput', $('#taskModalBody')).value.trim();
+    $('#addSub', $('#taskModalBody')).addEventListener('click', function() {
+      var v = $('#fSubInput', $('#taskModalBody')).value.trim();
       if (!v) return;
       editingSubtasks.push({ id: uid(), text: v, done: false });
       $('#fSubInput', $('#taskModalBody')).value = '';
       renderSubs();
     });
-    $('#fSubInput', $('#taskModalBody')).addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('#addSub', $('#taskModalBody')).click(); } });
+    $('#fSubInput', $('#taskModalBody')).addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); $('#addSub', $('#taskModalBody')).click(); } });
     renderSubs();
 
     // 附件
     function renderAttach() {
-      const box = $('#fAttach', $('#taskModalBody'));
+      var box = $('#fAttach', $('#taskModalBody'));
       if (!editingAttachments.length) { box.innerHTML = '<span style="color:var(--text-dim);font-size:12px">尚無附件</span>'; return; }
-      box.innerHTML = editingAttachments.map((a, i) =>
-        `<div class="attach-item">
-          <span class="attach-ico">?</span>
-          <span class="attach-name" data-i="${i}" title="開啟">${esc(a.name)}</span>
-          <span class="attach-size">${fmtSize(a.size)}</span>
-          <span class="attach-x" data-i="${i}" title="移除">?</span>
-        </div>`).join('');
-      $$('#fAttach .attach-name', $('#taskModalBody')).forEach((n) =>
-        n.addEventListener('click', () => window.api.openAttachment(editingAttachments[+n.dataset.i].path)));
-      $$('#fAttach .attach-x', $('#taskModalBody')).forEach((x) =>
-        x.addEventListener('click', () => { const a = editingAttachments[+x.dataset.i]; window.api.removeAttachment(a.path); editingAttachments.splice(+x.dataset.i, 1); renderAttach(); }));
+      box.innerHTML = editingAttachments.map(function(a, i) {
+        return '<div class="attach-item">'
+      + '  <span class="attach-ico">?</span>'
+      + '  <span class="attach-name" data-i="' + i + '" title="開啟">' + esc(a.name) + '</span>'
+      + '  <span class="attach-size">' + fmtSize(a.size) + '</span>'
+      + '  <span class="attach-x" data-i="' + i + '" title="移除">?</span>'
+      + '</div>';
+      }).join('');
+      $$('#fAttach .attach-name', $('#taskModalBody')).forEach(function(n) {
+        n.addEventListener('click', function() { window.api.openAttachment(editingAttachments[+n.dataset.i].path); });
+      });
+      $$('#fAttach .attach-x', $('#taskModalBody')).forEach(function(x) {
+        x.addEventListener('click', function() {
+          var a = editingAttachments[+x.dataset.i];
+          window.api.removeAttachment(a.path);
+          editingAttachments.splice(+x.dataset.i, 1);
+          renderAttach();
+        });
+      });
     }
-    $('#addAttachBtn', $('#taskModalBody')).addEventListener('click', async () => {
-      const r = await window.api.addAttachment(editingId);
+    $('#addAttachBtn', $('#taskModalBody')).addEventListener('click', async function() {
+      var r = await window.api.addAttachment(editingId);
       if (r.ok) { editingAttachments.push(r.file); renderAttach(); }
       else if (!r.canceled) toast('附件失敗：' + r.error);
     });
     renderAttach();
 
-    $('#taskSaveBtn').onclick = () => {
-      const title = $('#fTitle').value.trim();
-      if (!title) return toast('璜嬭几鍏ヤ换鍕欐椤?');
-      const projectId = $('#fProject').value;
-      const status = $('#fStatus').value;
-      const obj = {
-        title,
+    $('#taskSaveBtn').onclick = function() {
+      var title = $('#fTitle').value.trim();
+      if (!title) return toast('請輸入任務標題');
+      var projectId = $('#fProject').value;
+      var status = $('#fStatus').value;
+      var obj = {
+        title: title,
         desc: $('#fDesc').value.trim(),
         projectId: projectId || (state.projects[0] && state.projects[0].id),
-        status,
+        status: status,
         priority: $('#fPrio').value,
         assignee: $('#fMember').value || null,
         due: $('#fDue').value || null,
-        tags: [...editingTags],
+        tags: Array.from(editingTags),
         subtasks: editingSubtasks,
         attachments: editingAttachments,
         completedAt: status === 'done' ? (t && t.completedAt) || todayStr() : null
       };
       if (isEdit) Object.assign(t, obj);
-      else state.tasks.push({ id: editingId, createdAt: todayStr(), ...obj });
+      else state.tasks.push({ id: editingId, createdAt: todayStr() });
+      Object.assign(state.tasks[state.tasks.length - 1] || t, obj);
       saveState().then(renderAll);
       closeModal();
-      toast(isEdit ? '宸叉洿鏂颁换鍕?' : '宸叉柊澧炰换鍕?');
+      toast(isEdit ? '已更新任務' : '已新增任務');
     };
-    $('#taskDeleteBtn').onclick = () => {
-      if (!confirm('纰哄畾鍒櫎閫欏�嬩换鍕欙紵')) return;
-      const dying = state.tasks.find((x) => x.id === taskId);
-      if (dying && dying.attachments) dying.attachments.forEach((a) => window.api.removeAttachment(a.path));
-      state.tasks = state.tasks.filter((x) => x.id !== taskId);
+    $('#taskDeleteBtn').onclick = function() {
+      if (!confirm('確定刪除這個任務？')) return;
+      var dying = state.tasks.find(function(x) { return x.id === taskId; });
+      if (dying && dying.attachments) dying.attachments.forEach(function(a) { window.api.removeAttachment(a.path); });
+      state.tasks = state.tasks.filter(function(x) { return x.id !== taskId; });
       saveState().then(renderAll);
       closeModal();
-      toast('宸插埅闄?');
+      toast('已刪除');
     };
     $('#taskModal').hidden = false;
   }
   function closeModal() { $('#taskModal').hidden = true; }
 
   function emptyHTML() {
-    return `<div class="empty"><div class="big">馃梻锔?</div>閫欒！閭勬矑鏈夌鍚堟浠剁殑浠诲嫏<br>榛炴搳鍙充笂瑙掋�岋紜 鏂板浠诲嫏銆嶉枊濮嬪惂</div>`;
+    return '<div class="empty"><div class="big">??</div>這裡還沒有符合條件的任務<br>點擊右上角「＋ 新增任務」開始吧</div>';
   }
 
   /* ===================================================================
-     鍦栬〃锛圕anvas 鎵嬬躬锛?
+     圖表（Canvas 手繪）
      =================================================================== */
   function setupCanvas(cv) {
-    const dpr = window.devicePixelRatio || 1;
-    const w = cv.clientWidth || cv.parentElement.clientWidth;
-    const h = cv.height;
+    var dpr = window.devicePixelRatio || 1;
+    var w = cv.clientWidth || cv.parentElement.clientWidth;
+    var h = cv.height;
     cv.width = w * dpr; cv.height = h * dpr;
-    const ctx = cv.getContext('2d');
+    var ctx = cv.getContext('2d');
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, w, h);
-    return { ctx, w, h };
+    return { ctx: ctx, w: w, h: h };
   }
   function cssVar(v) { return getComputedStyle(document.body).getPropertyValue(v).trim() || '#888'; }
 
   function drawBar(cv, labels, data, colors) {
-    const { ctx, w, h } = setupCanvas(cv);
-    const pad = 28, max = Math.max(1, ...data);
-    const bw = (w - pad * 2) / data.length;
-    ctx.font = '12px sans-serif';
-    data.forEach((d, i) => {
-      const bh = (d / max) * (h - pad * 2);
-      const x = pad + i * bw + bw * 0.18;
-      const y = h - pad - bh;
-      ctx.fillStyle = colors[i].startsWith('var(') ? cssVar(colors[i].slice(4, -1)) : colors[i];
-      ctx.fillRect(x, y, bw * 0.64, bh);
-      ctx.fillStyle = cssVar('--text-dim');
-      ctx.textAlign = 'center';
-      ctx.fillText(d, x + bw * 0.32, y - 6);
-      ctx.fillStyle = cssVar('--text');
-      ctx.fillText(labels[i], x + bw * 0.32, h - 8);
+    var s = setupCanvas(cv);
+    var pad = 28, max = Math.max.apply(null, data.concat([1]));
+    var bw = (s.w - pad * 2) / data.length;
+    s.ctx.font = '12px sans-serif';
+    data.forEach(function(d, i) {
+      var bh = (d / max) * (s.h - pad * 2);
+      var x = pad + i * bw + bw * 0.18;
+      var y = s.h - pad - bh;
+      s.ctx.fillStyle = colors[i].indexOf('var(') === 0 ? cssVar(colors[i].slice(4, -1)) : colors[i];
+      s.ctx.fillRect(x, y, bw * 0.64, bh);
+      s.ctx.fillStyle = cssVar('--text-dim');
+      s.ctx.textAlign = 'center';
+      s.ctx.fillText(d, x + bw * 0.32, y - 6);
+      s.ctx.fillStyle = cssVar('--text');
+      s.ctx.fillText(labels[i], x + bw * 0.32, s.h - 8);
     });
   }
   function drawDonut(cv, labels, data, colors) {
-    const { ctx, w, h } = setupCanvas(cv);
-    const total = data.reduce((a, b) => a + b, 0);
-    const cx = w / 2, cy = h / 2, r = Math.min(w, h) / 2 - 16;
-    let ang = -Math.PI / 2;
+    var s = setupCanvas(cv);
+    var total = data.reduce(function(a, b) { return a + b; }, 0);
+    var cx = s.w / 2, cy = s.h / 2, r = Math.min(s.w, s.h) / 2 - 16;
+    var ang = -Math.PI / 2;
     if (total === 0) {
-      ctx.fillStyle = cssVar('--border');
-      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+      s.ctx.fillStyle = cssVar('--border');
+      s.ctx.beginPath(); s.ctx.arc(cx, cy, r, 0, Math.PI * 2); s.ctx.fill();
     } else {
-      data.forEach((d, i) => {
-        const slice = (d / total) * Math.PI * 2;
-        ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.arc(cx, cy, r, ang, ang + slice);
-        ctx.closePath();
-        ctx.fillStyle = colors[i].startsWith('var(') ? cssVar(colors[i].slice(4, -1)) : colors[i];
-        ctx.fill();
+      data.forEach(function(d, i) {
+        var slice = (d / total) * Math.PI * 2;
+        s.ctx.beginPath();
+        s.ctx.moveTo(cx, cy);
+        s.ctx.arc(cx, cy, r, ang, ang + slice);
+        s.ctx.closePath();
+        s.ctx.fillStyle = colors[i].indexOf('var(') === 0 ? cssVar(colors[i].slice(4, -1)) : colors[i];
+        s.ctx.fill();
         ang += slice;
       });
     }
-    ctx.fillStyle = cssVar('--bg-elev');
-    ctx.beginPath(); ctx.arc(cx, cy, r * 0.58, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = cssVar('--text'); ctx.textAlign = 'center'; ctx.font = '13px sans-serif';
-    ctx.fillText('鍏? ' + total, cx, cy + 4);
-    // 鍦栦緥
-    let ly = h - labels.length * 16;
-    labels.forEach((lb, i) => {
-      ctx.fillStyle = colors[i].startsWith('var(') ? cssVar(colors[i].slice(4, -1)) : colors[i];
-      ctx.fillRect(8, ly, 10, 10);
-      ctx.fillStyle = cssVar('--text-dim'); ctx.textAlign = 'left';
-      ctx.fillText(`${lb}: ${data[i]}`, 24, ly + 9);
+    s.ctx.fillStyle = cssVar('--bg-elev');
+    s.ctx.beginPath(); s.ctx.arc(cx, cy, r * 0.58, 0, Math.PI * 2); s.ctx.fill();
+    s.ctx.fillStyle = cssVar('--text'); s.ctx.textAlign = 'center'; s.ctx.font = '13px sans-serif';
+    s.ctx.fillText('共 ' + total, cx, cy + 4);
+    var ly = s.h - labels.length * 16;
+    labels.forEach(function(lb, i) {
+      s.ctx.fillStyle = colors[i].indexOf('var(') === 0 ? cssVar(colors[i].slice(4, -1)) : colors[i];
+      s.ctx.fillRect(8, ly, 10, 10);
+      s.ctx.fillStyle = cssVar('--text-dim'); s.ctx.textAlign = 'left';
+      s.ctx.fillText(lb + ': ' + data[i], 24, ly + 9);
       ly += 16;
     });
   }
   function drawTrend(cv, tasks) {
-    const { ctx, w, h } = setupCanvas(cv);
-    const pad = 26;
-    // 杩? 6 閫卞畬鎴愭暩
-    const weeks = [];
-    const now = new Date();
-    for (let i = 5; i >= 0; i--) {
-      const end = new Date(now); end.setDate(end.getDate() - i * 7);
-      const start = new Date(end); start.setDate(start.getDate() - 6);
-      const n = tasks.filter((t) => t.status === 'done' && t.completedAt &&
-        t.completedAt >= isoDay(start) && t.completedAt <= isoDay(end)).length;
+    var s = setupCanvas(cv);
+    var pad = 26;
+    var weeks = [];
+    var now = new Date();
+    for (var wi = 5; wi >= 0; wi--) {
+      var end = new Date(now); end.setDate(end.getDate() - wi * 7);
+      var start = new Date(end); start.setDate(start.getDate() - 6);
+      var n = tasks.filter(function(t) { return t.status === 'done' && t.completedAt &&
+        t.completedAt >= isoDay(start) && t.completedAt <= isoDay(end); }).length;
       weeks.push(n);
     }
-    const max = Math.max(1, ...weeks);
-    const step = (w - pad * 2) / (weeks.length - 1);
-    ctx.strokeStyle = cssVar('--accent'); ctx.lineWidth = 2; ctx.beginPath();
-    weeks.forEach((n, i) => {
-      const x = pad + i * step;
-      const y = h - pad - (n / max) * (h - pad * 2);
-      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    var max = Math.max.apply(null, weeks.concat([1]));
+    var step = (s.w - pad * 2) / (weeks.length - 1);
+    s.ctx.strokeStyle = cssVar('--accent'); s.ctx.lineWidth = 2; s.ctx.beginPath();
+    weeks.forEach(function(n, i) {
+      var x = pad + i * step;
+      var y = s.h - pad - (n / max) * (s.h - pad * 2);
+      i === 0 ? s.ctx.moveTo(x, y) : s.ctx.lineTo(x, y);
     });
-    ctx.stroke();
-    ctx.fillStyle = cssVar('--text-dim'); ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
-    weeks.forEach((n, i) => ctx.fillText(n, pad + i * step, h - 8));
+    s.ctx.stroke();
+    s.ctx.fillStyle = cssVar('--text-dim'); s.ctx.font = '11px sans-serif'; s.ctx.textAlign = 'center';
+    weeks.forEach(function(n, i) { s.ctx.fillText(n, pad + i * step, s.h - 8); });
   }
 
   /* ===================================================================
-     鎻愰啋
+     提醒
      =================================================================== */
   function checkReminders(force) {
-    const today = todayStr();
-    let count = 0;
-    state.tasks.forEach((t) => {
+    var today = todayStr();
+    var count = 0;
+    state.tasks.forEach(function(t) {
       if (t.status === 'done' || !t.due) return;
-      const overdue = t.due < today;
-      const dueToday = t.due === today;
+      var overdue = t.due < today;
+      var dueToday = t.due === today;
       if ((overdue || dueToday) && (force || !notified.has(t.id))) {
-        const proj = projectById(t.projectId);
-        const title = overdue ? '浠诲嫏宸查�炬湡' : '浠诲嫏浠婂ぉ鍒版湡';
-        window.api.notify(title, `${t.title}${proj ? ' 路 ' + proj.name : ''}`);
+        var proj = projectById(t.projectId);
+        var title = overdue ? '任務已逾期' : '任務今天到期';
+        window.api.notify(title, t.title + (proj ? ' · ' + proj.name : ''));
         notified.add(t.id);
         count++;
       }
     });
-    if (force) toast(count ? `宸叉彁閱? ${count} 鍊嬩换鍕檂 : '娌掓湁闇�瑕佹彁閱掔殑浠诲嫏');
+    if (force) toast(count ? '已提醒 ' + count + ' 個任務' : '沒有需要提醒的任務');
   }
 
   /* ===================================================================
-     涓婚 / 鍒濆鍖?
+     主題 / 初始化
      =================================================================== */
   function applyTheme() {
     document.body.setAttribute('data-theme', state.settings.theme || 'dark');
   }
 
   function bindGlobal() {
-    $$('#navViews .nav-item').forEach((b) =>
-      b.addEventListener('click', () => {
+    $$('#navViews .nav-item').forEach(function(b) {
+      b.addEventListener('click', function() {
         currentView = b.dataset.view;
-        $$('#navViews .nav-item').forEach((x) => x.classList.remove('active'));
+        $$('#navViews .nav-item').forEach(function(x) { x.classList.remove('active'); });
         b.classList.add('active');
         renderAll();
-      })
-    );
-    $('#addTaskBtn').addEventListener('click', () => openTaskModal(null));
-    $('#addProjectBtn').addEventListener('click', () => {
-      const name = prompt('璜嬭几鍏ュ皥妗堝悕绋憋細');
+      });
+    });
+    $('#addTaskBtn').addEventListener('click', function() { openTaskModal(null); });
+    $('#addProjectBtn').addEventListener('click', function() {
+      var name = prompt('請輸入專案名稱：');
       if (!name) return;
-      const colors = ['#5b8cff', '#34d399', '#f472b6', '#fbbf24', '#7c5bff', '#22d3ee'];
+      var colors = ['#5b8cff', '#34d399', '#f472b6', '#fbbf24', '#7c5bff', '#22d3ee'];
       state.projects.push({ id: uid(), name: name.trim(), color: colors[state.projects.length % colors.length] });
       saveState().then(renderAll);
     });
-    $('#themeToggle').addEventListener('click', () => {
-      const order = ['dark', 'light', 'forest'];
-      const i = order.indexOf(state.settings.theme || 'dark');
+    $('#themeToggle').addEventListener('click', function() {
+      var order = ['dark', 'light', 'forest'];
+      var i = order.indexOf(state.settings.theme || 'dark');
       state.settings.theme = order[(i + 1) % order.length];
       applyTheme(); saveState();
     });
-    ['#searchInput', '#filterStatus', '#filterPriority', '#filterMember'].forEach((sel) =>
-      $(sel).addEventListener('input', renderAll)
-    );
+    ['#searchInput', '#filterStatus', '#filterPriority', '#filterMember'].forEach(function(sel) {
+      $(sel).addEventListener('input', renderAll);
+    });
     $('#taskModalClose').addEventListener('click', closeModal);
     $('#taskCancelBtn').addEventListener('click', closeModal);
-    $('#taskModal').addEventListener('click', (e) => { if (e.target.id === 'taskModal') closeModal(); });
+    $('#taskModal').addEventListener('click', function(e) { if (e.target.id === 'taskModal') closeModal(); });
   }
 
   async function init() {
-    const loaded = await window.api.loadData();
-    state = loaded && loaded.tasks ? loaded : seedData();
+    var loaded = await window.api.loadData();
+    state = (loaded && loaded.tasks) ? loaded : seedData();
     applyTheme();
     bindGlobal();
     renderAll();
     checkReminders(false);
-    setInterval(() => checkReminders(false), 5 * 60 * 1000);
+    setInterval(function() { checkReminders(false); }, 5 * 60 * 1000);
   }
 
   document.addEventListener('DOMContentLoaded', init);
