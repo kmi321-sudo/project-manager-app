@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>專案管理</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-theme="dark">
+  <div id="app">
+    <!-- 側邊欄 -->
+    <aside id="sidebar">
+      <div class="brand">
+        <span class="brand-logo">◈</span>
+        <span class="brand-name">專案管理</span>
+      </div>
+
+      <nav class="nav-views" id="navViews">
+        <button class="nav-item active" data-view="board"><span class="ic">▦</span>看板</button>
+        <button class="nav-item" data-view="list"><span class="ic">☰</span>列表</button>
+        <button class="nav-item" data-view="calendar"><span class="ic">▤</span>日曆</button>
+        <button class="nav-item" data-view="stats"><span class="ic">▥</span>統計</button>
+        <button class="nav-item" data-view="settings"><span class="ic">⚙</span>設定</button>
+      </nav>
+
+      <div class="projects-block">
+        <div class="section-head">
+          <span>專案</span>
+          <button class="mini-btn" id="addProjectBtn" title="新增專案">＋</button>
+        </div>
+        <ul class="project-list" id="projectList"></ul>
+      </div>
+
+      <div class="sidebar-footer">
+        <button class="nav-item" id="themeToggle" title="切換主題"><span class="ic">◐</span>主題</button>
+      </div>
+    </aside>
+
+    <!-- 主區域 -->
+    <main id="main">
+      <header id="topbar">
+        <div class="topbar-left">
+          <h1 id="viewTitle">看板</h1>
+          <span id="viewSubtitle" class="subtitle"></span>
+        </div>
+        <div class="topbar-right">
+          <input type="search" id="searchInput" class="search" placeholder="搜尋任務…" />
+          <select id="filterStatus" class="filter-select" title="依狀態篩選">
+            <option value="">全部狀態</option>
+            <option value="todo">待辦</option>
+            <option value="doing">進行中</option>
+            <option value="done">已完成</option>
+          </select>
+          <select id="filterPriority" class="filter-select" title="依優先級篩選">
+            <option value="">全部優先級</option>
+            <option value="high">高</option>
+            <option value="medium">中</option>
+            <option value="low">低</option>
+          </select>
+          <select id="filterMember" class="filter-select" title="依負責人篩選">
+            <option value="">全部成員</option>
+          </select>
+          <button class="primary-btn" id="addTaskBtn">＋ 新增任務</button>
+        </div>
+      </header>
+
+      <section id="content"></section>
+    </main>
+  </div>
+
+  <!-- 任務編輯對話框 -->
+  <div class="modal-mask" id="taskModal" hidden>
+    <div class="modal">
+      <div class="modal-head">
+        <h2 id="taskModalTitle">新增任務</h2>
+        <button class="icon-btn" id="taskModalClose">✕</button>
+      </div>
+      <div class="modal-body" id="taskModalBody"></div>
+      <div class="modal-foot">
+        <button class="ghost-btn" id="taskDeleteBtn" hidden>刪除</button>
+        <span class="spacer"></span>
+        <button class="ghost-btn" id="taskCancelBtn">取消</button>
+        <button class="primary-btn" id="taskSaveBtn">儲存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 通用提示 -->
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
